@@ -37,4 +37,29 @@ class PPMUnitTest {
         byte[] green = loaded.getPixels(1, 0);
         assertEquals((byte) 255, green[1]);
     }
+
+
+    @Test
+    @DisplayName("Test PPM image saving and loading")
+    void t003 () throws Exception {
+        var image = new PPM(2, 2, 24);
+        image.setPixels(0, 0, new byte[]{(byte) 255, 0, 0}); // Red
+        image.setPixels(1, 0, new byte[]{0, (byte) 255, 0}); // Green
+        image.setPixels(0, 1, new byte[]{0, 0, (byte) 255}); // Blue
+        image.setPixels(1, 1, new byte[]{(byte) 255, (byte) 255, (byte) 255}); // White
+        image.save("test_copy.ppm");
+
+
+        var loaded = new PPM("test_copy.ppm");
+
+        byte[] white = loaded.getPixels(1, 1);
+        assertEquals((byte) 255, white[0]);
+
+        byte[] blue = loaded.getPixels(0, 1);
+        assertEquals((byte) 255, blue[2]);
+
+        byte[] green = loaded.getPixels(1, 0);
+        assertEquals((byte) 255, green[1]);
+
+    }
 }
