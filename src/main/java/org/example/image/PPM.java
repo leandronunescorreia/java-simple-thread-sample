@@ -2,7 +2,6 @@ package org.example.image;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
-import java.util.Scanner;
 
 public class PPM extends Simple {
 
@@ -48,7 +47,7 @@ public class PPM extends Simple {
         }
     }
 
-    private String readToken(InputStream is) throws IOException {
+    protected String readToken(InputStream is) throws IOException {
         ByteArrayOutputStream token = new ByteArrayOutputStream();
         int b;
         // Skip whitespace

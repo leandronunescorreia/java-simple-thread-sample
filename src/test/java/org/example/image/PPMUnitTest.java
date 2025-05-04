@@ -3,6 +3,8 @@ package org.example.image;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
+
 import static org.junit.jupiter.api.Assertions.*;
 class PPMUnitTest {
 
@@ -60,6 +62,29 @@ class PPMUnitTest {
 
         byte[] green = loaded.getPixels(1, 0);
         assertEquals((byte) 255, green[1]);
+    }
 
+    @Test
+    @DisplayName("t004 - saving an image with 720p resolution")
+    void t004() throws IOException {
+        var image = new PPM(1280, 720, 24);
+        for(var y = 0; y < image.getHeight(); y++) {
+            for(var x = 0; x < image.getWidth(); x++) {
+                image.setPixels(x, y, new byte[]{(byte) 255, (byte) 255, (byte) 255}); // White
+            }
+        }
+
+        image.save("test_720p.ppm");
+
+        var loaded = new PPM("test_720p.ppm");
+        assertEquals(1280, loaded.getWidth());
+        assertEquals(720, loaded.getHeight());
+        assertEquals(24, loaded.getBitDepth());
+        var randomX = (int) (Math.random() * 1280);
+        var randomY = (int) (Math.random() * 720);
+        var randomPixel = loaded.getPixels(randomX, randomY);
+        assertEquals((byte) 255, randomPixel[0]);
+        assertEquals((byte) 255, randomPixel[1]);
+        assertEquals((byte) 255, randomPixel[2]);
     }
 }
