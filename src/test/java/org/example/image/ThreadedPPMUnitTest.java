@@ -4,6 +4,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import static java.lang.Thread.sleep;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ThreadedPPMUnitTest {
@@ -36,16 +37,57 @@ class ThreadedPPMUnitTest {
 
         sleep(1000);
 
-        var loaded = new ThreadedPPM("thread_ppm.ppm", 4);
+        var loadedSync = new ThreadedPPM("thread_ppm.ppm", 4, false);
 
-        byte[] red = loaded.getPixels(0, 0);
-        assertEquals((byte) 255, red[0]);
+        var red = loadedSync.getPixelUnsigned(0, 0);
+        assertEquals(255, red[0]);
 
-        byte[] blue = loaded.getPixels(0, 1);
-        assertEquals((byte) 255, blue[2]);
+        var blue = loadedSync.getPixelUnsigned(0, 1);
+        assertEquals( 255, blue[2]);
 
-        byte[] green = loaded.getPixels(1, 0);
-        assertEquals((byte) 255, green[1]);
+        var green = loadedSync.getPixelUnsigned(1, 0);
+        assertEquals(255, green[1]);
+    }
+
+    @Test
+    @DisplayName("t003- Async vs Sync - Async should be faster")
+    void t003() throws Exception {
+        var image = new ThreadedPPM(2, 2, 24);
+        image.setPixels(0, 0, new byte[]{(byte) 255, 0, 0}); // Red
+        image.setPixels(1, 0, new byte[]{0, (byte) 255, 0}); // Green
+        image.setPixels(0, 1, new byte[]{0, 0, (byte) 255}); // Blue
+        image.setPixels(1, 1, new byte[]{(byte) 255, (byte) 255, (byte) 255}); // White
+        image.save("thread_ppm.ppm");
+
+        sleep(1000);
+
+        long syncStartTime = System.nanoTime();
+        var loadedSync = new ThreadedPPM("thread_ppm.ppm", 4, true);
+        long syncEndTime = System.nanoTime() - syncStartTime;
+
+        var red = loadedSync.getPixelUnsigned(0, 0);
+        assertEquals(255, red[0]);
+
+        var blue = loadedSync.getPixelUnsigned(0, 1);
+        assertEquals( 255, blue[2]);
+
+        var green = loadedSync.getPixelUnsigned(1, 0);
+        assertEquals(255, green[1]);
+
+        long aSyncStartTime = System.nanoTime();
+        var loadedAsync = new ThreadedPPM("thread_ppm.ppm", 4, false);
+        long aSyncEndTime = System.nanoTime() - aSyncStartTime;
+
+        var ared = loadedAsync.getPixelUnsigned(0, 0);
+        assertEquals(255, ared[0]);
+
+        var ablue = loadedAsync.getPixelUnsigned(0, 1);
+        assertEquals( 255, ablue[2]);
+
+        var agreen = loadedAsync.getPixelUnsigned(1, 0);
+        assertEquals(255, agreen[1]);
+
+        assertThat(syncEndTime).isGreaterThan(aSyncEndTime);
     }
 
 }

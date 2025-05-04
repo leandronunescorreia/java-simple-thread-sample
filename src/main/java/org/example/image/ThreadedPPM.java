@@ -11,47 +11,40 @@ public class ThreadedPPM extends PPM {
         super(width, height, bitDepth);
     }
 
-    public ThreadedPPM(String filename, int numberOfThreads) throws IOException {
+    public ThreadedPPM(String filename, int numberOfThreads, boolean runSync) throws IOException {
         super(0, 0, 0);
 
-        var header = this.readImageHeaderInfo(filename);
+        long headerSize = this.readImageHeaderInfo(filename);
         this.pixels = new byte[width * height * (bitDepth / 8)];
 
-        long dataSize = (new java.io.File(filename).length() - header);
+        long dataSize = new java.io.File(filename).length() - headerSize;
         long chunkSize = dataSize / numberOfThreads;
         long remainder = dataSize % numberOfThreads;
 
-        //allocate threads
         List<Thread> threads = new ArrayList<>(numberOfThreads);
 
-
         for (int i = 0; i < numberOfThreads; i++) {
-            long start = (i * chunkSize) + header+1;
-            long length = chunkSize + (i == (numberOfThreads - 1) ? remainder: 0);
-            threads.add( new Thread(() -> {
+            long start = headerSize + (i * chunkSize);
+            long length = chunkSize + (i == numberOfThreads - 1 ? remainder : 0);
+            long pixelOffset = i * chunkSize;
+            threads.add(new Thread(() -> {
                 try {
-                    multiThreadLoad(filename, start, length);
+                    multiThreadLoad(filename, start, length, pixelOffset, runSync);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
             }));
         }
 
-        for (var thread : threads) {
+        for (Thread thread : threads) {
             thread.start();
         }
 
-        // Wait for all threads to finish
-        while(true) {
-            boolean allDone = true;
-            for (var thread : threads) {
-                if (thread.isAlive()) {
-                    allDone = false;
-                    break;
-                }
-            }
-            if (allDone) {
-                break;
+        for (Thread thread : threads) {
+            try {
+                thread.join();
+            } catch (InterruptedException e) {
+                throw new IOException("Thread interrupted", e);
             }
         }
     }
@@ -60,14 +53,12 @@ public class ThreadedPPM extends PPM {
         try (BufferedInputStream bufferedInputStream = new BufferedInputStream(new FileInputStream(filename))) {
             long bytesRead = 0;
 
-            // Read magic number (e.g., "P6")
             String magic = readToken(bufferedInputStream);
-            bytesRead += magic.length() + 1; // +1 for the whitespace or newline
+            bytesRead += magic.length() + 1;
             if (!magic.equals("P6")) {
                 throw new IOException("Unsupported format: " + magic);
             }
 
-            // Read width, height, maxVal
             int width = Integer.parseInt(readToken(bufferedInputStream));
             bytesRead += String.valueOf(width).length() + 1;
 
@@ -81,6 +72,8 @@ public class ThreadedPPM extends PPM {
                 throw new IOException("Only maxVal=255 is supported.");
             }
 
+//            bufferedInputStream.read();
+
             this.width = width;
             this.height = height;
             this.bitDepth = 24;
@@ -89,22 +82,58 @@ public class ThreadedPPM extends PPM {
         }
     }
 
-    public void multiThreadLoad(String filename, long start, long length) throws IOException {
+
+    public void multiThreadLoad(String filename, long start, long length, long pixelOffset, boolean runSync) throws IOException {
         try (BufferedInputStream bufferedInputStream = new BufferedInputStream(new FileInputStream(filename))) {
-            // Skip to the start position
+            // Skip to correct byte position in file
             long skipped = bufferedInputStream.skip(start);
             if (skipped != start) {
-                throw new IOException("Failed to skip to the start position");
+                throw new IOException("Failed to skip to start position.");
             }
 
-            // Read raw pixel data
-            int bytesRead = bufferedInputStream.readNBytes(this.pixels, (int) start, (int) (start+length));
+            byte[] buffer = new byte[(int) length];
+            int read = bufferedInputStream.read(buffer);
+            if (read != length) {
+                throw new IOException("Unexpected EOF or read error.");
+            }
 
-            if (bytesRead != start+length) {
-                throw new IOException("Unexpected EOF when reading pixel data");
+            if(runSync) {
+                synchronized (this) {
+                    System.arraycopy(buffer, 0, this.pixels, (int) pixelOffset, (int) length);
+                }
+            } else {
+                System.arraycopy(buffer, 0, this.pixels, (int) pixelOffset, (int) length);
             }
         }
     }
 
-}
+    private String readToken(BufferedInputStream in) throws IOException {
+        StringBuilder sb = new StringBuilder();
+        int c;
+        // Skip any whitespace or comments
+        while (true) {
+            c = in.read();
+            if (c == '#') {
+                while (c != '\n' && c != -1) {
+                    c = in.read();
+                }
+            } else if (!Character.isWhitespace(c)) {
+                break;
+            }
+        }
+        sb.append((char) c);
+        while ((c = in.read()) != -1 && !Character.isWhitespace(c)) {
+            sb.append((char) c);
+        }
+        return sb.toString();
+    }
 
+    public int[] getPixelUnsigned(int x, int y) {
+        byte[] pixel = getPixels(x, y);
+        return new int[]{
+                Byte.toUnsignedInt(pixel[0]),
+                Byte.toUnsignedInt(pixel[1]),
+                Byte.toUnsignedInt(pixel[2])
+        };
+    }
+}
