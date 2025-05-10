@@ -72,8 +72,6 @@ public class ThreadedPPM extends PPM {
                 throw new IOException("Only maxVal=255 is supported.");
             }
 
-//            bufferedInputStream.read();
-
             this.width = width;
             this.height = height;
             this.bitDepth = 24;
@@ -105,35 +103,5 @@ public class ThreadedPPM extends PPM {
                 System.arraycopy(buffer, 0, this.pixels, (int) pixelOffset, (int) length);
             }
         }
-    }
-
-    private String readToken(BufferedInputStream in) throws IOException {
-        StringBuilder sb = new StringBuilder();
-        int c;
-        // Skip any whitespace or comments
-        while (true) {
-            c = in.read();
-            if (c == '#') {
-                while (c != '\n' && c != -1) {
-                    c = in.read();
-                }
-            } else if (!Character.isWhitespace(c)) {
-                break;
-            }
-        }
-        sb.append((char) c);
-        while ((c = in.read()) != -1 && !Character.isWhitespace(c)) {
-            sb.append((char) c);
-        }
-        return sb.toString();
-    }
-
-    public int[] getPixelUnsigned(int x, int y) {
-        byte[] pixel = getPixels(x, y);
-        return new int[]{
-                Byte.toUnsignedInt(pixel[0]),
-                Byte.toUnsignedInt(pixel[1]),
-                Byte.toUnsignedInt(pixel[2])
-        };
     }
 }

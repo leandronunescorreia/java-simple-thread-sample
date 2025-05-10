@@ -51,8 +51,12 @@ class PPMUnitTest {
         image.setPixels(1, 1, new byte[]{(byte) 255, (byte) 255, (byte) 255}); // White
         image.save("test_copy.ppm");
 
+        Thread.sleep(1000); // Wait for the file to be saved
 
         var loaded = new PPM("test_copy.ppm");
+
+        byte[] red = loaded.getPixels(0, 0);
+        assertEquals((byte) 255, red[0]);
 
         byte[] white = loaded.getPixels(1, 1);
         assertEquals((byte) 255, white[0]);
@@ -66,7 +70,7 @@ class PPMUnitTest {
 
     @Test
     @DisplayName("t004 - saving an image with 720p resolution")
-    void t004() throws IOException {
+    void t004() throws IOException, InterruptedException {
         var image = new PPM(1280, 720, 24);
         for(var y = 0; y < image.getHeight(); y++) {
             for(var x = 0; x < image.getWidth(); x++) {
@@ -75,6 +79,8 @@ class PPMUnitTest {
         }
 
         image.save("test_720p.ppm");
+        Thread.sleep(1000); // Wait for the file to be saved
+
 
         var loaded = new PPM("test_720p.ppm");
         assertEquals(1280, loaded.getWidth());
