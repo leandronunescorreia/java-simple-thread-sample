@@ -30,8 +30,8 @@ public class ThreadedPPM extends PPM {
             threads.add(new Thread(() -> {
                 try {
                     multiThreadLoad(filename, start, length, pixelOffset, runSync);
-                } catch (IOException e) {
-                    e.printStackTrace();
+                } catch (Exception e) {
+                    throw new RuntimeException("Unexpected EOF or read error.");
                 }
             }));
         }
